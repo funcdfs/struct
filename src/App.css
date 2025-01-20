@@ -1,0 +1,774 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0f172a;
+  color: #94a3b8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  min-height: 100vh;
+}
+
+.app-container {
+  padding: 24px;
+  min-width: 1024px;
+  max-width: 1440px;
+  margin: 0 auto;
+  background: #0f172a;
+  min-height: 100vh;
+  display: flex;
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: minmax(600px, 1fr) minmax(320px, 380px) 280px;
+  gap: 20px;
+  width: 100%;
+  align-items: start;
+}
+
+.editors-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.editors-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  height: 380px;
+}
+
+.editor-card,
+.preview-section,
+.testcase-list,
+.diff-container {
+  background: #1e293b;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  padding: 16px;
+}
+
+.editor-header {
+  margin-bottom: 12px;
+}
+
+.editor-container {
+  flex: 1;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #1e293b;
+}
+
+.editor-container:focus-within {
+  border-color: #475569;
+  box-shadow: 0 0 0 1px rgba(51, 65, 85, 0.3);
+}
+
+.action-buttons {
+  padding: 0 24px;
+  margin-bottom: 24px;
+}
+
+button {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.diff-button {
+  background-color: #38a169;
+  color: white;
+}
+
+.generate-button {
+  background: #2563eb;
+  color: #fff;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #3b82f6;
+}
+
+.generate-button:hover {
+  background: #1d4ed8;
+}
+
+button:hover {
+  filter: brightness(1.05);
+  transform: none;
+}
+
+button:active {
+  filter: brightness(0.95);
+  transform: none;
+}
+
+.diff-container {
+  height: 260px;
+  position: relative;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.diff-container::before {
+  content: '差异';
+  font-size: 11px;
+  color: #718096;
+}
+
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: calc(100vh - 48px);
+  position: sticky;
+  top: 24px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #334155;
+  margin-bottom: 12px;
+}
+
+.preview-header h2 {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.copy-button {
+  background: #334155;
+  color: #94a3b8;
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #475569;
+}
+
+.copy-button.success {
+  background: #065f46;
+  color: #fff;
+  border-color: #059669;
+}
+
+.copy-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+.copy-button:active {
+  transform: none;
+}
+
+.preview-container {
+  flex: 1;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.preview-container h2 {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: normal;
+  text-align: center;
+  padding: 40px 20px;
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.testcase-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: calc(100vh - 48px);
+  position: sticky;
+  top: 24px;
+  overflow-y: auto;
+  transition: box-shadow 0.2s ease;
+  background: #1e293b;
+}
+
+.testcase-list::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.testcase-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.testcase-list::-webkit-scrollbar-thumb {
+  background-color: #475569;
+  border-radius: 4px;
+}
+
+.testcase-list:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.3);
+}
+
+.testcase-item {
+  padding: 8px 12px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #1e293b;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.testcase-item:hover {
+  border-color: #3b82f6;
+  background: #262f42;
+}
+
+.testcase-item.selected {
+  background: #262f42;
+  border-color: #3b82f6;
+}
+
+.testcase-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  position: relative;
+}
+
+.testcase-name {
+  flex: 1;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: text;
+}
+
+.delete-button {
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: none;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  margin-left: auto;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.testcase-item:hover .delete-button {
+  opacity: 1;
+}
+
+.delete-button:hover {
+  color: #ef4444;
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.testcase-empty {
+  color: #64748b;
+  text-align: center;
+  padding: 16px;
+  font-size: 12px;
+  border: 1px dashed #334155;
+  border-radius: 6px;
+}
+
+.diff-container .monaco-editor .margin {
+  background-color: #1e293b !important;
+  border-right: none !important;
+}
+
+.diff-container .monaco-editor .glyph-margin {
+  background-color: transparent !important;
+  width: 20px !important;
+}
+
+.diff-add-glyph {
+  position: relative;
+}
+
+.diff-add-glyph::before {
+  content: '+';
+  color: #059669;
+}
+
+.diff-remove-glyph {
+  position: relative;
+}
+
+.diff-remove-glyph::before {
+  content: '-';
+  color: #dc2626;
+}
+
+.diff-container .monaco-editor .line-numbers {
+  color: #64748b !important;
+}
+
+.diff-add-line {
+  background-color: rgba(6, 78, 59, 0.3) !important;
+  border: none !important;
+}
+
+.diff-remove-line {
+  background-color: rgba(127, 29, 29, 0.3) !important;
+  border: none !important;
+}
+
+.diff-add-gutter {
+  background-color: transparent !important;
+  border-left: 2px solid #059669 !important;
+  border-right: none !important;
+}
+
+.diff-remove-gutter {
+  background-color: transparent !important;
+  border-left: 2px solid #dc2626 !important;
+  border-right: none !important;
+}
+
+.monaco-editor {
+  padding: 4px 0;
+}
+
+.monaco-editor .margin,
+.monaco-editor .monaco-editor-background {
+  background-color: #1e293b !important;
+}
+
+/* 测试用例名称输入框样式 */
+.testcase-name-input {
+  flex: 1;
+  font-size: 13px;
+  color: #2d3748;
+  font-weight: 500;
+  padding: 2px 6px;
+  border: 1px solid #60a5fa;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  outline: none;
+  margin: -3px 0;
+  width: 0; /* 配合 flex: 1 使用 */
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.1);
+}
+
+.testcase-name-input:focus {
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.1);
+}
+
+/* 添加提示光标 */
+.testcase-name {
+  cursor: text;
+}
+
+/* 确保删除按钮在编辑时也能正常工作 */
+.testcase-content {
+  position: relative;
+}
+
+.delete-button {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* 快捷键提示样式 */
+.shortcut {
+  background: #334155;
+  color: #94a3b8;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+/* 测试用例列表头部 */
+.testcase-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #334155;
+}
+
+.testcase-header h2 {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* 优化编辑器的滚动条 */
+.monaco-editor .monaco-scrollable-element {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f8f9fa;
+}
+
+.monaco-editor .monaco-scrollable-element::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.monaco-editor .monaco-scrollable-element::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.monaco-editor .monaco-scrollable-element::-webkit-scrollbar-thumb {
+  background-color: rgba(71, 85, 105, 0.3);
+  border-radius: 4px;
+}
+
+/* 优化编辑器的选中文本颜色 */
+.monaco-editor .selected-text {
+  background-color: rgba(51, 65, 85, 0.4) !important;
+}
+
+/* 优化编辑器的光标颜色 */
+.monaco-editor .cursor {
+  background-color: #94a3b8 !important;
+}
+
+/* 优化编辑器的行号颜色 */
+.monaco-editor .line-numbers {
+  color: #64748b !important;
+}
+
+/* 优化编辑器的当前行高亮 */
+.monaco-editor .current-line {
+  background-color: #262f42 !important;
+  border: none !important;
+}
+
+/* 添加响应式布局 */
+@media screen and (max-width: 1400px) {
+  .main-content {
+    grid-template-columns: minmax(600px, 1fr) 280px;
+    grid-template-rows: auto auto;
+  }
+
+  .preview-section {
+    grid-column: 1;
+    grid-row: 2;
+    height: auto;
+    position: static;
+  }
+
+  .testcase-list {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .main-content {
+    grid-template-columns: 1fr 280px;
+  }
+
+  .editors-row {
+    grid-template-columns: 1fr;
+    height: auto;
+    gap: 20px;
+  }
+
+  .editor-card {
+    height: 320px;
+  }
+
+  .preview-section {
+    min-height: 400px;
+  }
+}
+
+/* 阴影和悬停效果 */
+.editor-card,
+.preview-section,
+.testcase-list {
+  transition: box-shadow 0.2s ease;
+}
+
+.editor-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* 滚动条美化 */
+.monaco-editor .monaco-scrollable-element,
+.testcase-list {
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(71, 85, 105, 0.3);
+    border-radius: 4px;
+  }
+
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.3);
+  }
+}
+
+/* 优化标题样式 */
+.editor-header h2,
+.preview-header h2,
+.testcase-header h2 {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* 优化按钮样式 */
+.generate-button {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* 优化复制按钮 */
+.copy-button {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* 优化空状态提示 */
+.testcase-empty {
+  color: #475569;
+  text-align: center;
+  padding: 16px;
+  font-size: 12px;
+}
+
+/* 优化差异对比标题 */
+.diff-container::before {
+  content: '差异';
+  font-size: 11px;
+  color: #718096;
+}
+
+/* 优化测试用例名称 */
+.testcase-name {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* 删除按钮优化 */
+.delete-button {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.delete-button:hover {
+  opacity: 1;
+}
+
+/* Monaco Editor 暗色主题优化 */
+.monaco-editor {
+  padding: 4px 0;
+}
+
+.monaco-editor .margin,
+.monaco-editor .monaco-editor-background {
+  background-color: transparent !important;
+}
+
+/* 编辑器选中文本 */
+.monaco-editor .selected-text {
+  background-color: rgba(51, 65, 85, 0.4) !important;
+}
+
+/* 编辑器光标 */
+.monaco-editor .cursor {
+  background-color: #94a3b8 !important;
+}
+
+/* 编辑器行号 */
+.monaco-editor .line-numbers {
+  color: #64748b !important;
+}
+
+/* 编辑器当前行高亮 */
+.monaco-editor .current-line {
+  background-color: #262f42 !important;
+  border: none !important;
+}
+
+/* 差异对比样式 */
+.diff-add-line {
+  background-color: rgba(6, 78, 59, 0.3) !important;
+}
+
+.diff-remove-line {
+  background-color: rgba(127, 29, 29, 0.3) !important;
+}
+
+.diff-add-gutter {
+  border-left: 2px solid #059669 !important;
+}
+
+.diff-remove-gutter {
+  border-left: 2px solid #dc2626 !important;
+}
+
+/* 编辑器滚动条 */
+.monaco-editor .monaco-scrollable-element::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.monaco-editor .monaco-scrollable-element::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.monaco-editor .monaco-scrollable-element::-webkit-scrollbar-thumb {
+  background-color: rgba(71, 85, 105, 0.3);
+  border-radius: 4px;
+}
+
+.monaco-editor .monaco-scrollable-element::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.3);
+}
+
+/* 编辑器建议框样式 */
+.monaco-editor .suggest-widget {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+.monaco-editor .suggest-widget .monaco-list-row {
+  color: #94a3b8 !important;
+}
+
+.monaco-editor .suggest-widget .monaco-list-row.focused {
+  background-color: #262f42 !important;
+}
+
+/* Monaco Editor 行号区域样式 */
+.monaco-editor .margin {
+  background-color: #1e293b !important;
+  border-right: none !important;  /* 删除边框线 */
+}
+
+.monaco-editor .line-numbers {
+  color: #64748b !important;
+  font-size: 12px !important;
+}
+
+/* 编辑器主体区域 */
+.monaco-editor .monaco-editor-background {
+  background-color: #1e293b !important;
+}
+
+/* 当前行高亮 */
+.monaco-editor .current-line {
+  background-color: #262f42 !important;
+  border: none !important;
+}
+
+/* 差异对比样式优化 */
+.diff-container {
+  height: 260px;
+  position: relative;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 差异行样式 */
+.diff-add-line {
+  background-color: rgba(6, 78, 59, 0.3) !important;
+  border: none !important;
+}
+
+.diff-remove-line {
+  background-color: rgba(127, 29, 29, 0.3) !important;
+  border: none !important;
+}
+
+/* 差异标记样式 */
+.diff-add-gutter {
+  background-color: transparent !important;
+  border-left: 2px solid #059669 !important;
+  border-right: none !important;
+}
+
+.diff-remove-gutter {
+  background-color: transparent !important;
+  border-left: 2px solid #dc2626 !important;
+  border-right: none !important;
+}
+
+/* 差异图标样式 */
+.diff-add-glyph::before {
+  content: '+';
+  color: #059669;
+}
+
+.diff-remove-glyph::before {
+  content: '-';
+  color: #dc2626;
+}
+
+/* 差异编辑器的行号区域 */
+.diff-container .monaco-editor .margin {
+  background-color: #1e293b !important;
+  border-right: none !important;
+}
+
+/* 差异编辑器的主体区域 */
+.diff-container .monaco-editor .monaco-editor-background {
+  background-color: #1e293b !important;
+}
+
+/* 差异编辑器的当前行 */
+.diff-container .monaco-editor .current-line {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+/* 差异编辑器的选中文本 */
+.diff-container .monaco-editor .selected-text {
+  background-color: rgba(51, 65, 85, 0.4) !important;
+}
