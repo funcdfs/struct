@@ -1,10 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
-import Editor, { Monaco } from "@monaco-editor/react"
-import * as monaco from 'monaco-editor'
-import * as Diff from 'diff'
+import { useState, useEffect, useRef } from 'react'
+import Editor, { DiffEditor } from "@monaco-editor/react"
 import './App.css'
-
-// 定义完整的测试用例类型
 interface TestCaseData {
   id: number;
   name: string;
@@ -16,74 +12,33 @@ interface TestCaseData {
 function App() {
   const [input, setInput] = useState('')
   const [output, setOutput] = useState('')
-  const [diff, setDiff] = useState<string | null>(null)
   const [struct, setStruct] = useState<string | null>(null)
   const [caseCount, setCaseCount] = useState(1)
   const [testCases, setTestCases] = useState<TestCaseData[]>([])
   const [selectedCase, setSelectedCase] = useState<number | null>(null)
-  const diffEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
-  const diffResultRef = useRef<DiffResult | null>(null)
   const [copySuccess, setCopySuccess] = useState(false)
   const [editingName, setEditingName] = useState<number | null>(null)
+  const [shouldShowDiff, setShouldShowDiff] = useState(false)
 
-  const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
-    diffEditorRef.current = editor
-    if (diffResultRef.current) {
-      applyDecorations(diffResultRef.current.lines)
-    }
-  }
-
-  const applyDecorations = (diffLines: DiffLine[]) => {
-    if (!diffEditorRef.current) return
-
-    const decorations = diffLines.map((line, index) => ({
-      range: new monaco.Range(index + 1, 1, index + 1, 1),
-      options: {
-        isWholeLine: true,
-        className: line.type === 'add' ? 'diff-add-line' : 
-                  line.type === 'remove' ? 'diff-remove-line' : 
-                  undefined,
-        linesDecorationsClassName: line.type === 'add' ? 'diff-add-gutter' :
-                                 line.type === 'remove' ? 'diff-remove-gutter' :
-                                 undefined,
-        glyphMarginClassName: line.type === 'add' ? 'diff-add-glyph' :
-                            line.type === 'remove' ? 'diff-remove-glyph' :
-                            undefined
-      }
-    }))
-    diffEditorRef.current.deltaDecorations([], decorations)
-  }
-
-  // 监听输入输出变化，自动更新差异对比
+  // 自动更新结构体和差异对比
   useEffect(() => {
     if (input || output) {
-      const diffResult = compareDiff(input, output)
-      setDiff(diffResult.text)
-      diffResultRef.current = diffResult
-
-      if (diffEditorRef.current) {
-        applyDecorations(diffResult.lines)
-      }
-    } else {
-      setDiff(null)  // 当输入输出都为空时，清空差异对比
-    }
-  }, [input, output])
-
-  // 自动更新结构体
-  useEffect(() => {
-    if (input || output) {  // 只要有输入或输出就生成结构体
+      // 更新结构体
       const structResult = generateTestStruct(
-        input, 
-        output, 
-        selectedCase ? 
-          testCases.find(tc => tc.id === selectedCase)?.name || `testcase${caseCount}` : 
+        input,
+        output,
+        selectedCase !== null ?
+          testCases.find(tc => tc.id === selectedCase)?.name || `testcase${caseCount}` :
           `testcase${caseCount}`
       )
       setStruct(structResult)
     } else {
-      setStruct(null)  // 当输入输出都为空时，清空结构体
+      setStruct(null)
     }
-  }, [input, output])
+    
+    // 控制是否显示差异对比
+    setShouldShowDiff(Boolean(input || output))
+  }, [input, output, selectedCase, testCases, caseCount])
 
   // 添加快捷键处理
   useEffect(() => {
@@ -96,14 +51,7 @@ function App() {
       // Cmd/Ctrl + D 对比差异
       if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
         e.preventDefault()
-        if (input || output) {
-          const diffResult = compareDiff(input, output)
-          setDiff(diffResult.text)
-          diffResultRef.current = diffResult
-          if (diffEditorRef.current) {
-            applyDecorations(diffResult.lines)
-          }
-        }
+        setShouldShowDiff(Boolean(input || output))
       }
     }
 
@@ -140,22 +88,7 @@ function App() {
     // 不需要手动设置 struct，因为 useEffect 会处理
   }
 
-  // 移除更新测试用例的函数和相关的 useEffect，因为现在由新的 useEffect 统一处理
-  const handleUpdateCase = () => {
-    if (selectedCase === null) return
 
-    setTestCases(prev => prev.map(tc => {
-      if (tc.id === selectedCase) {
-        return {
-          ...tc,
-          input,
-          output,
-          struct: generateTestStruct(input, output, tc.name)
-        }
-      }
-      return tc
-    }))
-  }
 
   // 删除测试用例
   const handleDeleteCase = (id: number, e: React.MouseEvent) => {
@@ -169,22 +102,36 @@ function App() {
     }
   }
 
-  // 添加复制功能
+  // 添加复制功能（带可清理的超时）
+  const copyTimeoutRef = useRef<number | null>(null)
   const handleCopy = async () => {
     if (!struct) return
-    
+
     try {
       await navigator.clipboard.writeText(struct)
       setCopySuccess(true)
-      
-      // 3秒后重置复制状态
-      setTimeout(() => {
+
+      // 清理上一次的 timeout
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
         setCopySuccess(false)
+        copyTimeoutRef.current = null
       }, 3000)
     } catch (err) {
       console.error('Failed to copy text: ', err)
     }
   }
+
+  // 组件卸载时清理 timeout
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // 添加修改名称的处理函数
   const handleNameEdit = (testCase: TestCaseData, newName: string) => {
@@ -225,19 +172,18 @@ function App() {
               </div>
               <div className="editor-container">
                 <Editor
-                  height="300px"
+                  height="100%"
                   defaultLanguage="plaintext"
                   value={input}
-                  onChange={(value) => setInput(value || '')}
+                  onChange={(value: string | undefined) => setInput(value || '')}
                   theme="vs-dark"
-                  options={{
+                    options={{
                     minimap: { enabled: false },
                     fontSize: 14,
                     lineNumbers: 'on',
                     scrollBeyondLastLine: false,
                     wordWrap: 'on',
                     renderWhitespace: 'all',
-                    theme: 'vs-dark',
                     renderLineHighlight: 'none',
                     glyphMargin: true,
                     lineDecorationsWidth: 0,
@@ -253,19 +199,18 @@ function App() {
               </div>
               <div className="editor-container">
                 <Editor
-                  height="300px"
+                  height="100%"
                   defaultLanguage="plaintext"
                   value={output}
-                  onChange={(value) => setOutput(value || '')}
+                  onChange={(value: string | undefined) => setOutput(value || '')}
                   theme="vs-dark"
-                  options={{
+                    options={{
                     minimap: { enabled: false },
                     fontSize: 14,
                     lineNumbers: 'on',
                     scrollBeyondLastLine: false,
                     wordWrap: 'on',
                     renderWhitespace: 'all',
-                    theme: 'vs-dark',
                     renderLineHighlight: 'none',
                     glyphMargin: true,
                     lineDecorationsWidth: 0,
@@ -276,193 +221,122 @@ function App() {
             </div>
           </div>
 
-          {diff && (
+          {shouldShowDiff && (
             <div className="diff-container">
-              <Editor
-                height="200px"
-                defaultLanguage="plaintext"
-                value={diff}
-                onMount={handleEditorDidMount}
+              <DiffEditor
+                height="100%"
+                language="plaintext"
+                original={input}
+                modified={output}
                 theme="vs-dark"
                 options={{
+                  renderSideBySide: false,
                   readOnly: true,
-                  minimap: { enabled: false },
                   fontSize: 14,
-                  lineNumbers: 'on',
+                  lineHeight: 21,
+                  minimap: { enabled: false },
                   scrollBeyondLastLine: false,
-                  wordWrap: 'on',
-                  renderWhitespace: 'all',
-                  glyphMargin: true,
+                  renderOverviewRuler: false,
+                  diffWordWrap: 'on',
+                  ignoreTrimWhitespace: false,
+                  renderIndicators: true,
+                  originalEditable: false,
+                  folding: false,
                 }}
               />
             </div>
           )}
         </div>
 
-        <div className="preview-section">
-          <div className="preview-header">
-            <h2>结构体</h2>
-            {struct && (
-              <button 
-                className={`copy-button ${copySuccess ? 'success' : ''}`}
-                onClick={handleCopy}
-              >
-                {copySuccess ? '✓' : '复制'}
-              </button>
-            )}
-          </div>
-          <div className="preview-container">
-            {struct ? (
-              <Editor
-                height="200px"
-                defaultLanguage="go"
-                value={struct}
-                theme="vs-dark"
-                options={{
-                  readOnly: true,
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  lineNumbers: 'off',
-                  scrollBeyondLastLine: false,
-                  wordWrap: 'on',
-                  renderWhitespace: 'all'
-                }}
-              />
-            ) : (
-              <h2>输入内容后自动生成</h2>
-            )}
-          </div>
-        </div>
-
-        <div className="testcase-list">
-          <div className="testcase-header">
-            <h2>用例列表</h2>
-      </div>
-          {testCases.map((testCase) => (
-            <div
-              key={testCase.id}
-              className={`testcase-item ${selectedCase === testCase.id ? 'selected' : ''}`}
-              onClick={() => handleSelectCase(testCase)}
-            >
-              <div className="testcase-content">
-                {editingName === testCase.id ? (
-                  <input
-                    className="testcase-name-input"
-                    type="text"
-                    defaultValue={testCase.name}
-                    autoFocus
-                    onBlur={(e) => handleNameEdit(testCase, e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleNameEdit(testCase, e.currentTarget.value)
-                      } else if (e.key === 'Escape') {
-                        setEditingName(null)
-                      }
-                    }}
-                    onClick={(e) => e.stopPropagation()} // 防止触发选择事件
-                  />
-                ) : (
-                  <span 
-                    className="testcase-name"
-                    onDoubleClick={(e) => {
-                      e.stopPropagation()
-                      setEditingName(testCase.id)
-                    }}
-                  >
-                    {testCase.name}
-                  </span>
-                )}
-                <button
-                  className="delete-button"
-                  onClick={(e) => handleDeleteCase(testCase.id, e)}
+        <div className="sidebar">
+          <div className="preview-section">
+            <div className="preview-header">
+              <h2>结构体</h2>
+              {struct && (
+                <button 
+                  className={`copy-button ${copySuccess ? 'success' : ''}`}
+                  onClick={handleCopy}
                 >
-                  ×
-        </button>
-              </div>
+                  {copySuccess ? '✓' : '复制'}
+                </button>
+              )}
             </div>
-          ))}
-          {testCases.length === 0 && (
-            <div className="testcase-empty">
-              暂无用例
+            <div className="preview-container">
+              {struct ? (
+                <Editor
+                  height="200px"
+                  defaultLanguage="go"
+                  value={struct}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    lineNumbers: 'off',
+                    scrollBeyondLastLine: false,
+                    wordWrap: 'on',
+                    renderWhitespace: 'all'
+                  }}
+                />
+              ) : (
+                <h2>输入内容后自动生成</h2>
+              )}
+
+              {testCases.map((testCase) => (
+                <div
+                  key={testCase.id}
+                  className={`testcase-item ${selectedCase === testCase.id ? 'selected' : ''}`}
+                  onClick={() => handleSelectCase(testCase)}
+                >
+                  {editingName === testCase.id ? (
+                    <input
+                      className="testcase-name-input"
+                      type="text"
+                      defaultValue={testCase.name}
+                      autoFocus
+                      onBlur={(e) => handleNameEdit(testCase, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleNameEdit(testCase, e.currentTarget.value)
+                        } else if (e.key === 'Escape') {
+                          setEditingName(null)
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()} // 防止触发选择事件
+                    />
+                  ) : (
+                    <span 
+                      className="testcase-name"
+                      onDoubleClick={(e) => {
+                        e.stopPropagation()
+                        setEditingName(testCase.id)
+                      }}
+                    >
+                      {testCase.name}
+                    </span>
+                  )}
+                  <button
+                    className="delete-button"
+                    onClick={(e) => handleDeleteCase(testCase.id, e)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {testCases.length === 0 && (
+                <div className="testcase-empty">
+                  暂无用例
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-interface DiffLine {
-  text: string
-  type: 'add' | 'remove' | 'normal'
-}
 
-interface DiffResult {
-  text: string
-  lines: DiffLine[]
-}
-
-function compareDiff(input: string, output: string): DiffResult {
-  // 如果输入或输出为空，返回空结果
-  if (!input && !output) {
-    return {
-      text: '',
-      lines: []
-    }
-  }
-
-  // 按行分割，保留空行
-  const inputLines = input.split('\n')
-  const outputLines = output.split('\n')
-
-  // 如果最后一行是空行，移除它
-  if (inputLines[inputLines.length - 1] === '') inputLines.pop()
-  if (outputLines[outputLines.length - 1] === '') outputLines.pop()
-
-  // 使用 diffArrays 比较差异
-  const differences = Diff.diffArrays(inputLines, outputLines)
-  
-  let resultText = ''
-  const diffLines: DiffLine[] = []
-
-  // 处理每个差异部分
-  differences.forEach(part => {
-    part.value.forEach(line => {
-      if (part.added) {
-        resultText += line + '\n'
-        diffLines.push({
-          text: line,
-          type: 'add'
-        })
-      } else if (part.removed) {
-        resultText += line + '\n'
-        diffLines.push({
-          text: line,
-          type: 'remove'
-        })
-      } else {
-        resultText += line + '\n'
-        diffLines.push({
-          text: line,
-          type: 'normal'
-        })
-      }
-    })
-  })
-
-  // 检查是否有差异
-  if (!differences.some(part => part.added || part.removed)) {
-    return {
-      text: '输入和输出完全相同！',
-      lines: [{ text: '输入和输出完全相同！', type: 'normal' }]
-    }
-  }
-
-  return {
-    text: resultText.trim(),
-    lines: diffLines
-  }
-}
 
 interface TestCase {
   name: string;
